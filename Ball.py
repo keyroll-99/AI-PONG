@@ -1,7 +1,7 @@
 import pygame
 import random
 
-from ENV import BALL_SIZE, WIDTH, HEIGHT, WHITE
+from ENV import BALL_SIZE, WIDTH, HEIGHT, WHITE, BALL_SPEED
 
 
 class Ball(pygame.sprite.Sprite):
@@ -11,7 +11,7 @@ class Ball(pygame.sprite.Sprite):
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH // 2, HEIGHT // 2)
-        self.ball_speed = 5
+        self.ball_speed = BALL_SPEED
         self.speed_x = self.ball_speed * random.choice([1, -1])
         self.speed_y = self.ball_speed * random.choice([1, -1])
 

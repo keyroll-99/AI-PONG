@@ -9,3 +9,4 @@ PADDLE_HEIGHT = 100
 
 # Ball constants
 BALL_SIZE = 20
+BALL_SPEED = 5

@@ -4,7 +4,7 @@ import pygame
 
 from ENV import PADDLE_WIDTH, WIDTH, HEIGHT, WHITE, BLACK
 from NeuralNetwork import NeuralNetwork
-from Paddle import Paddle
+from Paddle import Paddle, DataCollection
 from Ball import Ball
 
 # Initialize Pygame
@@ -20,7 +20,8 @@ pygame.display.set_caption("Pong Game")
 # Create paddles and ball
 
 player_network = NeuralNetwork(1, [8])
-opponent_network = NeuralNetwork(2, [4, 4])
+opponent_network = NeuralNetwork(1, [8])
+data_collection = DataCollection()
 
 player_paddle = Paddle(PADDLE_WIDTH, HEIGHT // 2, player_network)
 opponent_paddle = Paddle(WIDTH - PADDLE_WIDTH, HEIGHT // 2, opponent_network)
@@ -37,7 +38,16 @@ opponent_score = 0
 # Game loop
 clock = pygame.time.Clock()
 running = True
+
+
 while running:
+    if player_score == 3 or opponent_score == 3:
+        player_score = 0
+        opponent_score = 0
+        player_paddle.update_network(data_collection, True)
+        opponent_paddle.update_network(data_collection, False)
+        ball.reset()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -53,14 +63,10 @@ while running:
 
     # Reset ball if it goes out of bounds
     if ball.rect.left <= 0:
-        player_paddle.update_network(ball, opponent_paddle, False)
-        opponent_paddle.update_network(ball, player_paddle, True)
         opponent_score += 1
         ball.reset()
 
     if ball.rect.right >= WIDTH:
-        player_paddle.update_network(ball, opponent_paddle, True)
-        opponent_paddle.update_network(ball, player_paddle, False)
         player_score += 1
         ball.reset()
 
@@ -80,6 +86,8 @@ while running:
 
     # Set the frame rate
     clock.tick(60)
+
+    data_collection.collect(ball, player_paddle, opponent_paddle)
 
 # Quit the game
 pygame.quit()
