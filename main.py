@@ -44,8 +44,8 @@ while running:
     if player_score == 3 or opponent_score == 3:
         player_score = 0
         opponent_score = 0
-        player_paddle.update_network(data_collection, True)
-        opponent_paddle.update_network(data_collection, False)
+        # player_paddle.update_network(data_collection, True)
+        # opponent_paddle.update_network(data_collection, False)
         ball.reset()
 
     for event in pygame.event.get():
@@ -64,9 +64,15 @@ while running:
     # Reset ball if it goes out of bounds
     if ball.rect.left <= 0:
         opponent_score += 1
+        player_paddle.update_network(data_collection, True)
+        opponent_paddle.update_network(data_collection, False)
+        data_collection.data.clear()
         ball.reset()
 
     if ball.rect.right >= WIDTH:
+        player_paddle.update_network(data_collection, True)
+        opponent_paddle.update_network(data_collection, False)
+        data_collection.data.clear()
         player_score += 1
         ball.reset()
 

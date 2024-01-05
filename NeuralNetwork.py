@@ -11,6 +11,7 @@ LEARNING_RATE = 0.01
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+
 class Layer:
     weights: np.ndarray
     output: list[float]
@@ -28,17 +29,19 @@ class Layer:
 
         return output
 
-    def get_error(self, layer_value, prev_error: ndarray) -> ndarray:
-        def count_error(weight: float):
-            print("error", prev_error, weight, layer_value)
-            for i in range(len(prev_error)):
-                return prev_error[i] * weight * layer_value[i] * (1 - layer_value[i])
+    def get_error(self, layer_values, prev_error: ndarray) -> ndarray:
 
-        errors = self.weights.copy()
-        v_func = np.vectorize(count_error)
-        v_func(errors)
+        weights = self.weights.copy()
+        errors = []
 
-        return errors
+        for j, layer_value in enumerate(layer_values):
+            error_sum = 0
+            for k, error in enumerate(prev_error):
+                error_sum += error * weights[k][j]
+
+            errors.append(error_sum * layer_value * (1 - layer_value))
+
+        return np.array(errors)
 
 
 class NeuralNetwork:
@@ -60,6 +63,8 @@ class NeuralNetwork:
 
     def train(self, inputs, target):
         # Forward pass
+        prev_errors = []
+        # while len(prev_errors) < 2 or prev_errors[-1] < prev_errors[-2]:
         layers_values = [inputs]
         for layer in self.layers:
             layers_values.append(layer.predict(layers_values[-1]))
@@ -69,7 +74,7 @@ class NeuralNetwork:
 
         errors = [[(output - target) * output * (1 - output)]]
 
-        for i in range((len(self.layers) - 1), 0, -1):
+        for i in range((len(self.layers) - 1), -1, -1):
             errors.append(self.layers[i].get_error(layers_values[i], errors[-1]))
 
         errors.reverse()
@@ -86,6 +91,7 @@ class NeuralNetwork:
 
             for j, bias in enumerate(self.layers[i].bias):
                 self.layers[i].bias[j] = bias + (LEARNING_RATE * errors[i][j])
-
-        print(f"{self.iter}-{len(self.layers)}")
+        prev_errors.append(errors[-1][0])
         self.iter += 1
+
+        print(f"{self.iter}-{len(self.layers)} - {prev_errors}")

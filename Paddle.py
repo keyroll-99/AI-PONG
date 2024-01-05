@@ -35,6 +35,12 @@ class Paddle(pygame.sprite.Sprite):
 
     def update_network(self, data, is_player=True):
         for item in data.data:
+            if item["player"]["target"] == -1 and is_player:
+                continue
+
+            if item["opponent"]["target"] == -1 and not is_player:
+                continue
+
             ball = item["ball"]
             player = item["player"]
             opponent = item["opponent"]
@@ -55,6 +61,23 @@ class DataCollection:
     data = []
 
     def collect(self, ball: Ball, player: Paddle, opponent: Paddle):
+        player_target = 1
+        opponent_target = 1
+
+        if player.rect.y < ball.rect.y:
+
+            if player.rect.y + player.rect.height > ball.rect.y:
+                player_target = -1 # special target, when paddle is in the middle of ball
+            else:
+                player_target = 0
+
+        if opponent.rect.y < ball.rect.y:
+
+            if opponent.rect.y + opponent.rect.height > ball.rect.y:
+                opponent_target = -1  # special target, when paddle is in the middle of ball
+            else:
+                opponent_target = 0
+
         self.data.append({
             "ball": {
                 "x": ball.rect.x,
@@ -65,11 +88,11 @@ class DataCollection:
             "player": {
                 "x": player.rect.x,
                 "y": player.rect.y,
-                "target": 1 if player.rect.y < ball.rect.y else 0
+                "target": player_target
             },
             "opponent": {
                 "x": opponent.rect.x,
                 "y": opponent.rect.y,
-                "target": 1 if opponent.rect.y < ball.rect.y else 0
+                "target": opponent_target
             }
         })
