@@ -1,3 +1,4 @@
+import json
 import sys
 
 import pygame
@@ -19,17 +20,19 @@ pygame.display.set_caption("Pong Game")
 
 # Create paddles and ball
 
-player_network = NeuralNetwork(1, [8])
-opponent_network = NeuralNetwork(1, [8])
+p1_network = NeuralNetwork(1, [8], "p1")
+p2_network = NeuralNetwork(1, [8], "p2")
+p2_network.load_weights(json.load(open("data_2/player_weights_v3.json", "r")))
+
 data_collection = DataCollection()
 
-player_paddle = Paddle(PADDLE_WIDTH, HEIGHT // 2, player_network)
-opponent_paddle = Paddle(WIDTH - PADDLE_WIDTH, HEIGHT // 2, opponent_network)
+p1_paddle = Paddle(PADDLE_WIDTH, HEIGHT // 2, p1_network, "p1", "p2")
+p2_paddle = Paddle(WIDTH - PADDLE_WIDTH, HEIGHT // 2, p2_network, "p2", "p1")
 ball = Ball()
 
 # Create sprite groups
 all_sprites = pygame.sprite.Group()
-all_sprites.add(player_paddle, opponent_paddle, ball)
+all_sprites.add(p1_paddle, p2_paddle, ball)
 
 # Score variables
 player_score = 0
@@ -39,13 +42,12 @@ opponent_score = 0
 clock = pygame.time.Clock()
 running = True
 
-
 while running:
     if player_score == 3 or opponent_score == 3:
         player_score = 0
         opponent_score = 0
-        # player_paddle.update_network(data_collection, True)
-        # opponent_paddle.update_network(data_collection, False)
+        p1_paddle.update_network(data_collection)
+        # p2_paddle.update_network(data_collection)
         ball.reset()
 
     for event in pygame.event.get():
@@ -53,26 +55,20 @@ while running:
             running = False
 
     # Update paddles and ball
-    player_paddle.move(ball, opponent_paddle)
-    opponent_paddle.move(ball, player_paddle)
+    p1_paddle.move(ball, p2_paddle)
+    p2_paddle.move(ball, p1_paddle)
     ball.update()
 
     # Ball bouncing off paddles
-    if pygame.sprite.collide_rect(ball, player_paddle) or pygame.sprite.collide_rect(ball, opponent_paddle):
+    if pygame.sprite.collide_rect(ball, p1_paddle) or pygame.sprite.collide_rect(ball, p2_paddle):
         ball.speed_x = -ball.speed_x
 
     # Reset ball if it goes out of bounds
     if ball.rect.left <= 0:
         opponent_score += 1
-        player_paddle.update_network(data_collection, True)
-        opponent_paddle.update_network(data_collection, False)
-        data_collection.data.clear()
         ball.reset()
 
     if ball.rect.right >= WIDTH:
-        player_paddle.update_network(data_collection, True)
-        opponent_paddle.update_network(data_collection, False)
-        data_collection.data.clear()
         player_score += 1
         ball.reset()
 
@@ -93,8 +89,13 @@ while running:
     # Set the frame rate
     clock.tick(60)
 
-    data_collection.collect(ball, player_paddle, opponent_paddle)
+    data_collection.collect(ball, p1_paddle, p2_paddle)
 
 # Quit the game
 pygame.quit()
+
+json.dump(data_collection.data, open("data/data.json", "w"))
+json.dump([layer.to_json() for layer in p1_network.layers], open("data/player_weights.json", "w"))
+json.dump([layer.to_json() for layer in p2_network.layers], open("data_2/opponent_weights.json", "w"))
+
 sys.exit()
