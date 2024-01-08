@@ -6,14 +6,25 @@ from NeuralNetwork import NeuralNetwork
 
 
 class Paddle(pygame.sprite.Sprite):
-    def __init__(self, x, y, network: NeuralNetwork):
+    def __init__(self, x, y, network: NeuralNetwork, name: str, opponent_name):
         super().__init__()
+        self.epoch = 0
         self.image = pygame.Surface((PADDLE_WIDTH, PADDLE_HEIGHT))
         self.image.fill(WHITE)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = 8
         self.network = network
+        self.name = name
+        self.opponent_name = opponent_name
+
+    def player_move(self):
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_UP] and self.rect.top > 0:
+            self.rect.y -= self.speed
+        if keys[pygame.K_DOWN] and self.rect.bottom < HEIGHT:
+            self.rect.y += self.speed
 
     def move(self, ball: Ball, opponent):
 
@@ -26,58 +37,59 @@ class Paddle(pygame.sprite.Sprite):
             opponent.rect.y / HEIGHT,
         ]
 
-        direction = self.network.predict(inputs)
+        direction = self.network.predict(inputs)[0]
 
-        if direction > 0.5 and self.rect.top > 0:
+        if direction > 0.6 and self.rect.top > 0:
             self.rect.y -= self.speed
-        elif direction < 0.5 and self.rect.bottom < HEIGHT:
+        elif direction < 0.4 and self.rect.bottom < HEIGHT:
             self.rect.y += self.speed
 
-    def update_network(self, data, is_player=True):
-        for item in data.data:
-            if item["player"]["target"] == -1 and is_player:
-                continue
+    def update_network(self, data):
+        learning_data_length = len(data.data)
+        learning_data_length = int(learning_data_length * 0.7)
+        learning_data = data.data[:learning_data_length]
+        test_cases = data.data[learning_data_length:]
 
-            if item["opponent"]["target"] == -1 and not is_player:
-                continue
+        self.network.train(learning_data)
 
-            ball = item["ball"]
-            player = item["player"]
-            opponent = item["opponent"]
+        test_result = []
+        for test_case in test_cases:
+            test_result.append(self.network.calculate_loss(self.get_input(test_case), test_cases["player"]['target']))
 
-            inputs = [
-                ball["x"] / WIDTH,
-                ball["y"] / HEIGHT,
-                ball["speed_x"] / BALL_SPEED,
-                ball["speed_y"] / BALL_SPEED,
-                player["y"] / HEIGHT,
-                opponent["y"] / HEIGHT,
-            ]
+        self.epoch += 1
+        print(f"End of epoch {self.epoch} for {self.name} with avg {avg(test_result)}")
 
-            self.network.train(inputs, player["target"] if is_player else opponent["target"])
+    def get_input(self, data):
+        return [
+            data["ball"]["x"] / WIDTH,
+            data["ball"]["y"] / HEIGHT,
+            data["ball"]["speed_x"] / BALL_SPEED,
+            data["ball"]["speed_y"] / BALL_SPEED,
+            data["player"]["y"] / HEIGHT,
+            data["opponent"]["y"] / HEIGHT,
+        ]
+
+
+def avg(lst):
+    return sum(lst) / len(lst)
+
+
+def get_target(player_rect: pygame.rect, ball_rect: pygame.rect):
+    target = 1
+    if player_rect.y < ball_rect.y:
+
+        if player_rect.y + player_rect.height > ball_rect.y:
+            target = 0.5
+        else:
+            target = 0
+
+    return target
 
 
 class DataCollection:
     data = []
 
-    def collect(self, ball: Ball, player: Paddle, opponent: Paddle):
-        player_target = 1
-        opponent_target = 1
-
-        if player.rect.y < ball.rect.y:
-
-            if player.rect.y + player.rect.height > ball.rect.y:
-                player_target = -1 # special target, when paddle is in the middle of ball
-            else:
-                player_target = 0
-
-        if opponent.rect.y < ball.rect.y:
-
-            if opponent.rect.y + opponent.rect.height > ball.rect.y:
-                opponent_target = -1  # special target, when paddle is in the middle of ball
-            else:
-                opponent_target = 0
-
+    def collect(self, ball: Ball, p1: Paddle, p2: Paddle):
         self.data.append({
             "ball": {
                 "x": ball.rect.x,
@@ -86,13 +98,12 @@ class DataCollection:
                 "speed_y": ball.speed_y
             },
             "player": {
-                "x": player.rect.x,
-                "y": player.rect.y,
-                "target": player_target
+                "x": p1.rect.x,
+                "y": p1.rect.y,
+                "target": get_target(p1.rect, ball.rect)
             },
             "opponent": {
-                "x": opponent.rect.x,
-                "y": opponent.rect.y,
-                "target": opponent_target
+                "x": p2.rect.x,
+                "y": p2.rect.y,
             }
         })
