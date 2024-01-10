@@ -37,7 +37,7 @@ class Paddle(pygame.sprite.Sprite):
             opponent.rect.y / HEIGHT,
         ]
 
-        direction = self.network.predict(inputs)[0]
+        direction = self.network.predict(inputs)[0][0] # [0] result [1] bias
 
         if direction > 0.6 and self.rect.top > 0:
             self.rect.y -= self.speed
@@ -48,26 +48,7 @@ class Paddle(pygame.sprite.Sprite):
         learning_data_length = len(data.data)
         learning_data_length = int(learning_data_length * 0.7)
         learning_data = data.data[:learning_data_length]
-        test_cases = data.data[learning_data_length:]
-
         self.network.train(learning_data)
-
-        test_result = []
-        for test_case in test_cases:
-            test_result.append(self.network.calculate_loss(self.get_input(test_case), test_cases["player"]['target']))
-
-        self.epoch += 1
-        print(f"End of epoch {self.epoch} for {self.name} with avg {avg(test_result)}")
-
-    def get_input(self, data):
-        return [
-            data["ball"]["x"] / WIDTH,
-            data["ball"]["y"] / HEIGHT,
-            data["ball"]["speed_x"] / BALL_SPEED,
-            data["ball"]["speed_y"] / BALL_SPEED,
-            data["player"]["y"] / HEIGHT,
-            data["opponent"]["y"] / HEIGHT,
-        ]
 
 
 def avg(lst):
@@ -77,10 +58,6 @@ def avg(lst):
 def get_target(player_rect: pygame.rect, ball_rect: pygame.rect):
     target = 1
     if player_rect.y < ball_rect.y:
-
-        if player_rect.y + player_rect.height > ball_rect.y:
-            target = 0.5
-        else:
             target = 0
 
     return target

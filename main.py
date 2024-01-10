@@ -7,6 +7,7 @@ from ENV import PADDLE_WIDTH, WIDTH, HEIGHT, WHITE, BLACK
 from NeuralNetwork import NeuralNetwork
 from Paddle import Paddle, DataCollection
 from Ball import Ball
+from Old.NeuralNetwork import NeuralNetwork as OldNeuralNetwork
 
 # Initialize Pygame
 pygame.init()
@@ -22,10 +23,12 @@ pygame.display.set_caption("Pong Game")
 
 p1_network = NeuralNetwork([6, 8, 1], 0.01)
 
-p2_network = NeuralNetwork([6, 8, 1], 0.01)
+p2_network = NeuralNetwork([6, 4, 4, 1], 0.01)
 
-initial_train_data = json.load(open("data/data_last.json", "r"))
-p1_network.train(initial_train_data)
+# initial_train_data = json.load(open("data/data_last.json", "r"))
+# initial_train_data = list(filter(lambda x: x["player"]["target"] != 0.5, initial_train_data))
+# p2_network.train(initial_train_data)
+# p1_network.train(initial_train_data, 160_000)
 
 data_collection = DataCollection()
 
@@ -49,7 +52,7 @@ while running:
     if player_score == 3 or opponent_score == 3:
         player_score = 0
         opponent_score = 0
-        # p1_paddle.update_network(data_collection)
+        p1_paddle.update_network(data_collection)
         p2_paddle.update_network(data_collection)
         ball.reset()
 
@@ -58,7 +61,7 @@ while running:
             running = False
 
     # Update paddles and ball
-    p1_paddle.move(ball, p2_paddle)
+    p1_paddle.move(ball, p2_paddle)#player_move()
     p2_paddle.move(ball, p1_paddle)
     ball.update()
 
@@ -93,13 +96,12 @@ while running:
     clock.tick(60)
 
     data_collection.collect(ball, p1_paddle, p2_paddle)
-    data_collection.collect(ball, p2_paddle, p1_paddle)
 
 # Quit the game
 pygame.quit()
 
 json.dump(data_collection.data, open("data/data.json", "w"))
-json.dump([layer.to_json() for layer in p1_network.layers], open("data/player_weights.json", "w"))
-json.dump([layer.to_json() for layer in p2_network.layers], open("data/opponent_weights.json", "w"))
+json.dump([layer for layer in p1_network.weights], open("data/player_weights.json", "w"))
+json.dump(p2_network.weights, open("data/opponent_weights.json", "w"))
 
 sys.exit()
