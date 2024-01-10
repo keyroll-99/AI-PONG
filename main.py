@@ -21,9 +21,10 @@ pygame.display.set_caption("Pong Game")
 
 # Create paddles and ball
 
-p1_network = NeuralNetwork([6, 8, 1], 0.01)
+p1_network = NeuralNetwork([6, 8, 8, 1], 0.01)
+p1_network.from_json(json.load(open("data/p1_weights.json", "r")))
 
-p2_network = NeuralNetwork([6, 4, 4, 1], 0.01)
+p2_network = NeuralNetwork([6, 8, 1], 0.01)
 
 # initial_train_data = json.load(open("data/data_last.json", "r"))
 # initial_train_data = list(filter(lambda x: x["player"]["target"] != 0.5, initial_train_data))
@@ -100,8 +101,16 @@ while running:
 # Quit the game
 pygame.quit()
 
-json.dump(data_collection.data, open("data/data.json", "w"))
-json.dump([layer for layer in p1_network.weights], open("data/player_weights.json", "w"))
-json.dump(p2_network.weights, open("data/opponent_weights.json", "w"))
+# json.dump(data_collection.data, open("data/data.json", "w"))
+# json.dump([layer for layer in p1_network.weights], open("data/player_weights.json", "w"))
+# json.dump(p2_network.weights, open("data/opponent_weights.json", "w"))
+
+print("Do you want to save network? [y/n]")
+
+p1_weights = p1_network.to_json()
+p2_weights = p2_network.to_json()
+json.dump(p1_weights, open("data/p1_weights.json", "w"))
+json.dump(p2_weights, open("data/p2_weights.json", "w"))
+
 
 sys.exit()
